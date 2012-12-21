@@ -1,51 +1,43 @@
-var NS = Y.namespace('com.javcly.designer.dialogs');
+/*jslint nomen:true*/
+/*global Y, Translator*/
+var NS = Y.namespace('com.javcly.designer.dialogs'), ImageOrganizer = NS.ImageOrganizer, SlideShowSetting = NS.SlideShowSetting, AlbumBoxSetting = NS.AlbumBoxSetting;
 
 NS.OrganizeImagesDialog = Y.Base.create('designer_organize_images_dialog', NS.Dialog, [], {
 
-    initializer : function() {
+    initializer : function() {"use strict";
 
     },
 
-    renderHeader : function() {
+    generateContents : function() {"use strict";
+        var element = this.get('element'), content = this.get('srcNode'), organizer, setting;
 
-        var header = NS.OrganizeImagesDialog.superclass.renderHeader.call(this);
-        var html = '<div class="organize_images_button menu_selected">'+Translator.get('designer.image.organizer.title')+'</div><div class="setting_slides_button">'+Translator.get('designer.setting')+'</div>';
-        header.set('innerHTML', html);
-        header.all('div').on('click', this.changeTab, this);
-    },
-
-    renderContent : function() {
-        var element = this.get('element');
-        var content = NS.OrganizeImagesDialog.superclass.renderContent.call(this);
-
-        var organizer = new Y.com.javcly.designer.dialogs.ImageOrganizer({
+        organizer = new ImageOrganizer({
             element : element,
             container : content
-        }).render();
-        
-        if(element.get('slide')){          // for slide show 
-            
-        var setting = new Y.com.javcly.designer.dialogs.SlideShowSetting({
-            element : element,
-            container : content
-        }).render();
-        } else if (element.get('albumnBox')){   // for albumn box
-            
-        var setting = new Y.com.javcly.designer.dialogs.AlbumnBoxSetting({
-            element : element,
-            container : content
-        }).render();
-        };
+        });
+        organizer.render();
+
+        if (element.get('slide')) {// for slide show
+
+            setting = new SlideShowSetting({
+                element : element,
+                container : content
+            });
+            setting.render();
+        } else if (element.get('albumBox')) {// for album box
+            //
+            // setting = new AlbumBoxSetting({
+            // element : element,
+            // container : content
+            // });
+            // setting.render();
+
+        }
+        this.organizer = organizer;
+        //  this.set('setting', setting);
     },
 
-    renderFooter : function(node, type, label) {
-        var footer = NS.OrganizeImagesDialog.superclass.renderFooter.call(this);
-        var node = Y.Node.create('<button id="delete_cancel">'+Translator.get('designer.cancel')+'</button>')
-        footer.append(node);
-        footer.one('#delete_cancel').on('click', this._onCancel, this);
-    },
-
-    changeTab : function(e) {
+    changeTab : function(e) {"use strict";
         if (e.target.hasClass('menu_selected')) {
             return;
         }
@@ -54,7 +46,7 @@ NS.OrganizeImagesDialog = Y.Base.create('designer_organize_images_dialog', NS.Di
         e.target.addClass('menu_selected').siblings().removeClass('menu_selected');
         if (e.target.hasClass('organize_images_button')) {
             node.one('.organize_setting_box').hide();
-            node.one('.organize_images_box').setStyle('display', 'block')
+            node.one('.organize_images_box').setStyle('display', 'block');
         } else {
             node.one('.organize_images_box').hide();
             node.one('.organize_setting_box').setStyle('display', 'block');
@@ -62,17 +54,20 @@ NS.OrganizeImagesDialog = Y.Base.create('designer_organize_images_dialog', NS.Di
 
     },
 
-    _onConfirm : function(e) {
+    _onConfirm : function() {"use strict";
         this.destroy();
 
     },
-    _onCancel : function(e) {
+    _onCancel : function(e) {"use strict";
         this.destroy();
-    }
-}, {
-    ATTRS : {
+    },
+
+    destructor : function() {"use strict";
+
+        if (this.organizer) {
+            this.organizer.destroy();
+        }
 
     }
-
 });
 

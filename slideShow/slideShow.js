@@ -1,143 +1,192 @@
-﻿var NS = Y.namespace('com.javcly.designer');
+﻿/*jslint nomen:true*/
+/*global Y, $*/
 
-NS.SlideShow = Y.Base.create('designer_slide_show', NS.PageElement, [], {
+var NS = Y.namespace('com.javcly.designer.utils');
 
-    initializer : function() {
-        this.after('resize-end', this.updateSlidelWidth, this);
+NS.SlideShow = Y.Base.create('designer_slideshow', Y.Widget, [], {
+
+    initializer : function() {'use strict';
+        this.on('*:slide', this.onSlide, this);
     },
 
-    renderUIWitoutExistingHtml : function() {
+    onSlide : function(e) {
 
-        var node = this.get('srcNode'), slidesBox = Y.Node.create('<div class="slides_container"></div>');
+        var slides = this.get('slides'), toSlideName, slideEntry, nextSlide, currentSession, newSession, newSessionData, Session = NS.SlideShow.Session, key;
 
-        node.append(slidesBox);
-
-        var model = this.get('model'), slides = model.get('images'), html = '', key, slide;
-
-        for (key in slides) {
-            slide = slides[key];
-
-            html += '<div class="slideWrapper"><img src="/javcly/designer/upload/' + slide + '/false/getImage.jspx"/></div>';
+        if (!slides) {
+            throw new Error('No slides have been registered for the slideshow.');
         }
 
-        var imagesNodes = slidesBox.all('img');
+        toSlideName = e.toSlide;
 
-        imagesNodes.once('load', this.onImageLoadOrError, this);
-        imagesNodes.once('error', this.onImageLoadOrError, this);
-        slidesBox.append(Y.Node.create(html));
-        this.buildSlideShow();
+        if (!toSlideName) {
+            throw new Error('Must specify the name of the slide you are switching to.');
+        }
+
+        slideEntry = slides[toSlideName];
+        if (!slideEntry) {
+            throw new Error('The slide "' + toSlideName + '" is not found in the slideshow.');
+        }
+
+        nextSlide = slideEntry.slide;
+
+        if (e.newSession) {
+            currentSession = this.get('session');
+            if (currentSession) {
+                currentSession.destroy();
+                currentSession = null;
+            }
+
+            newSession = new Session();
+
+            newSessionData = e.newSessionData;
+            if (newSessionData) {
+                for (key in newSessionData) {
+                    if (newSessionData.hasOwnProperty(key)) {
+                        newSession.set(key, newSessionData[key]);
+                    }
+                }
+            }
+            this.set('session', newSession);
+        }
+
+        nextSlide.set('session', this.get('session'));
+
+        nextSlide.fire('show', {
+            data : e.data
+        });
+
+        this.get('slidesInstance').slide(slideEntry.index);
 
     },
 
-    renderUIUsingExistingHtml : function() {
+    addSlide : function(slide) {'use strict';
+        var slides = this.get('slides'), slideName = slide.get('slideName'), numberOfSlides;
 
-        var srcNode = this.get('srcNode'), images = this.get('model').get('images');
+        if (slides[slideName]) {
+            throw new Error('Slide with name "' + slideName + '" has been registered.');
+        }
 
-        srcNode.all('.slides_container img').each(function(node, index) {
-            node.once('load', this.onImageLoadOrError, this);
-            node.once('error', this.onImageLoadOrError, this);
-            node.setAttribute('src', '/javcly/designer/upload/' + images[index] + '/false/getImage.jspx');
-        }, this);
-
-        this.buildSlideShow();
-
-    },
-
-    buildSlideShow : function() {
-
-        var model = this.get('model'), slidelWidth = model.get('width');
-
-        this.set('slide', $(this.get('srcNode').getDOMNode()).slides({
-            slideWidth : slidelWidth,
-            play : model.get('playSpeed'),
-            pause : model.get('pauseTime'),
-            effect : model.get('playEffect'),
-            generatePagination : model.get('generatePagination'),
-            hoverPause : model.get('hoverPause')
-        }));
-
-    },
-
-    onImageLoadOrError : function() {
-
-        var loadedSlides = this.get('loadedSlides'), total = this.get('model').get('images').length;
-
-        loadedSlides++;
-
-        if (loadedSlides >= total) {
-            this.fire('contentReady')
+        numberOfSlides = this.get('numberOfSlides');
+        slides[slideName] = {
+            slide : slide,
+            index : numberOfSlides
         };
-        this.set('loadedSlides', loadedSlides);
-
+        this.set('numberOfSlides', numberOfSlides + 1);
     },
 
-    updateSlidelWidth : function() {
-        var width = this.get('model').get('width');
-        ;
-        this.get('slide').updateSlideWidth(width);
-    },
-    add : function(slide) {
+    renderUI : function() {'use strict';
 
-        this.get('model').add(slide);
-        var identifier = slide;
+        var slides, srcNode, html, slidesContainer, firstSlide, key, slideNode, entry, slide;
 
-        var html = '<div style="width:100%"><img src="/javcly/designer/upload/' + identifier + '/false/getImage.jspx"/></div>';
-        this.get('slide').addSlide($(html));
+        slides = this.get('slides');
 
-    },
-
-    remove : function(index) {
-        this.get('model').remove(index);
-
-        var node = this.get('srcNode').one('.slides_container>div :nth-child(' + (parseInt(index) + 1) + ')').getDOMNode();
-        //idex +1 for real postion
-        this.get('slide').removeSlide($(node));
-
-    },
-
-    update : function(index, imgIdentifier) {
-        var slides = this.get('model').get('images');
-        slides[index] = imgIdentifier;
-        //model
-
-        var image = this.get('srcNode').one('.slides_container div:nth-child(' + (index + 1) + ')').one('img');
-        //dom
-        image.setAttribute('src', '/javcly/designer/upload/' + imgIdentifier + '/false/getImage.jspx');
-    },
-    setSlideEffect : function(newVal) {
-
-        this.get('model').set('playEffect', newVal);
-        this.get('slide').setEffect(newVal);
-    },
-    setPlaySpeed : function(newVal) {
-
-        this.get('model').set('playSpeed', newVal);
-        this.get('slide').setPlaySpeed(newVal);
-    },
-    setHoverPause : function(newVal) {
-        this.get('model').set('hoverPause', newVal);
-        this.get('slide').setHoverPause(newVal);
-    },
-    move : function(from, to) {
-
-        if (from == to) {
+        if (!slides) {
             return;
         }
-        var slides = this.get('model').get('images');
-        var slide = slides[from];
 
-        slides.splice(from, 1);
-        slides.splice(to, 0, slide);
+        srcNode = this.get('srcNode');
+        html = '<div id="slides_wrapper"><div id="slides_container" class="slides_container"></div></div>';
+        srcNode.setHTML(html);
 
-        this.get('slide').moveSlide(from, to);
+        slidesContainer = srcNode.one('#slides_container');
+
+        for (key in slides) {
+            if (slides.hasOwnProperty(key)) {
+
+                slideNode = Y.Node.create('<div class="slide_wrapper"></div>');
+                slideNode.generateID();
+                slidesContainer.appendChild(slideNode);
+
+                entry = slides[key];
+                slide = entry.slide;
+
+                if (entry.index === 0) {
+                    firstSlide = slide;
+                }
+
+                slide.set('node', slideNode);
+                slide.addTarget(this);
+            }
+        }
+
+        this.buildSilde();
+        firstSlide.render();
+    },
+
+    buildSilde : function() {'use strict';
+
+        var slidesInstance = $('#slides_wrapper').slides({
+            generatePagination : false,
+            slideSpeed : 280
+        });
+
+        this.set('slidesInstance', slidesInstance);
+    },
+
+    destructor : function() {'use strict';
+
+        var session = this.get('session'), slides, key, entry;
+        if (session) {
+            session.destroy();
+        }
+
+        slides = this.get('slides');
+
+        if (!slides) {
+            return;
+        }
+
+        this.get('slidesInstance').destroy();
+
+        for (key in slides) {
+            if (slides.hasOwnProperty(key)) {
+                slides[key].slide.destroy({
+                    remove : true
+                });
+            }
+        }
+
     }
 }, {
     ATTRS : {
-        loadedSlides : {
+        slides : {
+            value : []
+        },
+        container : null,
+        slidesInstance : null,
+        numberOfSlides : {
             value : 0
         },
-        slide : null
+        session : {
+            value : null
+        }
     }
-
 });
+
+NS.SlideShow.Session = function() {'use strict';
+    this._attrs = [];
+};
+
+NS.SlideShow.Session.prototype = {
+
+    set : function(attr, value) {'use strict';
+        this._attrs[attr] = value;
+    },
+
+    get : function(attr) {'use strict';
+        return this._attrs[attr];
+    },
+
+    destroy : function() {'use strict';
+        var key, attrs = this._attrs;
+        for (key in attrs) {
+            if (attrs.hasOwnProperty(key)) {
+                attrs[key] = null;
+            }
+        }
+        attrs.length = 0;
+        delete this._attrs;
+    }
+};
 

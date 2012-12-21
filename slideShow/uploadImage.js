@@ -1,8 +1,11 @@
+/*jslint nomen:true*/
+/*global Y, Translator*/
+
 var NS = Y.namespace('com.javcly.designer.utils');
 
 NS.Image = Y.Base.create('designer_image_uploader_image', NS.ImageBase, [], {
 
-    initializer : function() {
+    initializer : function() {'use strict';
 
         this.publish('uploadStart');
         this.publish('uploadComplete', {
@@ -14,21 +17,18 @@ NS.Image = Y.Base.create('designer_image_uploader_image', NS.ImageBase, [], {
 
     },
 
-    uploadComplete : function() {
+    uploadComplete : function() {'use strict';
 
         this.destroy();
     },
 
-    upload : function() {
-
+    upload : function() {'use strict';
         if (!this.get('validForUpload')) {
             return;
         }
 
-        var tempFileKey = this.get('tempFileKey');
-        var tempThumbnailFileKey = this.get('tempThumbnailFileKey');
+        var tempFileKey = this.get('tempFileKey'), tempThumbnailFileKey = this.get('tempThumbnailFileKey'), url = '/javcly/designer/upload/upload.jspx';
 
-        var url = '/javcly/designer/upload/upload.jspx';
         Y.io(url, {
             method : 'POST',
             context : this,
@@ -43,13 +43,13 @@ NS.Image = Y.Base.create('designer_image_uploader_image', NS.ImageBase, [], {
                 start : function() {
                     this.fire('uploadStart');
                 },
-                complete : function() {
-                    var data = Y.JSON.parse(arguments[1].responseText);
+                complete : function(id, xhr) {
+                    var data = Y.JSON.parse(xhr.responseText);
                     this.fire('uploadComplete', {
                         identifier : data.identifier,
                         fileName : this.get('file').get('name'),
-                        width : parseInt(data.thumbnailWidth),
-                        height : parseInt(data.thumbnailHeight)
+                        width : parseInt(data.thumbnailWidth, 10),
+                        height : parseInt(data.thumbnailHeight, 10)
                     });
                 },
 
@@ -59,35 +59,37 @@ NS.Image = Y.Base.create('designer_image_uploader_image', NS.ImageBase, [], {
             }
         });
     },
-    retryUpload : function() {
+    retryUpload : function() {'use strict';
 
     },
 
-    destructor : function() {
+    destructor : function() {'use strict';
         this.get('file').destroy();
     },
 
-    generateImage : function(width, height) {
-
+    generateImage : function(width, height) {'use strict';
         var previewImage = new Image();
-        previewImage.src = "/javcly/designer/upload/" + this.get('tempThumbnailFileKey') + "/getTempThumbnail.jspx";
         previewImage.width = width;
         previewImage.height = height;
         previewImage.setAttribute('tempFileKey', this.get('tempFileKey'));
         return previewImage;
     },
 
-    onImageLoad : function() {
+    getImageSrc : function() {'use strict';
+        return "/javcly/designer/upload/" + this.get('tempThumbnailFileKey') + "/getTempThumbnail.jspx";
+    },
+
+    onImageLoad : function() {'use strict';
         this.set('validForUpload', true);
 
     },
 
-    remove : function() {
+    remove : function() {'use strict';
         Y.io('/javcly/designer/upload/removeTempImageAndThumbnail.jspx', {
 
             data : {
                 tempFileKey : this.get('tempFileKey'),
-                tempThumbnailFileKey : this.get('tempThumbnailFileKey'),
+                tempThumbnailFileKey : this.get('tempThumbnailFileKey')
             },
             method : 'POST',
             context : this,
